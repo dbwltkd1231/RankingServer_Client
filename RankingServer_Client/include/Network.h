@@ -3,15 +3,14 @@
 #include <string>
 #include <memory>
 #include <thread>
-#include <winsock2.h>
-#include <mswsock.h>
-#include <windows.h>
-#include <ws2tcpip.h>
 
-#include "CustomPacket.h"
+
+#include "Client.h"
 #include "LockFreeCircleQueue.h"
 
-#define BUFFER_SIZE 1024
+
+
+#define BUFFER_SIZE 4096
 
 namespace Network
 {
@@ -19,27 +18,19 @@ namespace Network
 	{
 	public:
 		bool mConnected = false;
+		tbb::concurrent_vector<std::shared_ptr<Client>> mClientVector;
+		Utility::LockFreeCircleQueue<CustomOverlapped*> mOverlappedQueue;
 
 		Network();
 		~Network();
-
-		void Start(std::string ip, int port);
-		void Process();
-		void Send(uint32_t size);
-
-		char* mSend_HeaderBuffer;
-		char* mSend_BodyBuffer;
+		void Start(std::string ip, int port, int clientCount, int threadCount);
+		void Process(int threadCount);
 
 	private:
 		void Work();
-		void ReceiveReady();
 
 		HANDLE iocp;
-		SOCKET clientSocket;
-		CustomOverlapped mRecvContext;
-		CustomOverlapped mSendContext;
+		tbb::concurrent_map<int, std::shared_ptr<Client>> mClientMap;
 
-		char* mReceive_HeaderBuffer;
-		char* mReceive_BodyBuffer;
 	};
 }

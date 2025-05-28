@@ -9,36 +9,75 @@
 #define MY_IP "127.0.0.1"
 #define MY_PORT_NUM 9090
 
+
+
 int main()
 {
+	int clientCount = 0;
+	int threadCount = 10;
+
 	Network::Network network;
-	network.Start(MY_IP, MY_PORT_NUM);
-	network.Process();
 
+	std::cout << "실행할 클라이언트 개수를 입력하세요: \n";
+	std::cin >> clientCount;
 
-	std::string myId;
+	std::cout << "돌릴 쓰레드 개수를 입력하세요: \n";
+	std::cin >> threadCount;
+
+	network.Start(MY_IP, MY_PORT_NUM, clientCount, threadCount);
+
+	std::string standardId;
 	std::cout << "아이디를 입력하세요: \n";
-	std::cin >> myId;
+	std::cin >> standardId;
 
-	std::cout << myId + " 확인 서버요청작업 시작.. \n";
-	int interval = 3; // 3초 간격으로 요청
-	int myScore = 500;
+	network.Process(threadCount);
+
+	std::cout << standardId + " 확인. 서버요청작업 시작.. \n";
+	int interval = 1; // 1초 간격으로 요청
+	int standardScore = 1000;
 
 	while (network.mConnected)
 	{
 		std::time_t unixTime = std::time(nullptr);
-		auto size_2 = Business::Create_Request_Save_Score(myId, myScore, unixTime, network.mSend_HeaderBuffer, network.mSend_BodyBuffer);
-		std::cout << myId << "의 점수를 저장합니다. 점수: " << myScore << "\n";
-		network.Send(size_2);
-		myScore += 100;
 
-		std::this_thread::sleep_for(std::chrono::seconds(interval));
+		for (int i = 0;i < clientCount; ++i)
+		{
+			auto client = network.mClientVector[i];
+			std::string myId = standardId + std::to_string(i + 1);
+			int myScore = standardScore + i * 10;
 
-		auto size_1 = Business::Create_Request_Player_Ranking(myId, network.mSend_HeaderBuffer, network.mSend_BodyBuffer);
-		std::cout << myId << "의 랭킹을 확인합니다.\n";
-		network.Send(size_1);
+			auto context = network.mOverlappedQueue.pop();
+			context->SetHeader(client->mSend_HeaderBuffer, 0);
+			context->SetBody(client->mSend_BodyBuffer, 0);
 
-		std::this_thread::sleep_for(std::chrono::seconds(interval));
+			Business::Create_Request_Save_Score(myId, myScore, unixTime, context);
+			client->Send(*context);
+
+			std::string log = "[Mian] " + myId + "의 점수를 저장합니다. 점수: " + std::to_string(myScore);
+			std::cout << log << std::endl;
+			std::this_thread::sleep_for(std::chrono::seconds(interval));
+		}
+
+		std::this_thread::sleep_for(std::chrono::seconds(3));
+
+		for (int j = 0;j < clientCount; ++j)
+		{
+			auto client = network.mClientVector[j];
+			std::string myId = standardId + std::to_string(j + 1);
+
+			auto context = network.mOverlappedQueue.pop();
+			context->SetHeader(client->mSend_HeaderBuffer, 0);
+			context->SetBody(client->mSend_BodyBuffer, 0);
+
+			Business::Create_Request_Player_Ranking(myId, context);
+			client->Send(*context);
+
+			std::string log = "[Mian] " + myId + "의 랭킹을 확인합니다.";
+			std::cout << log << std::endl;
+			std::this_thread::sleep_for(std::chrono::seconds(interval));
+		}
+
+		standardScore += 100;
+		std::this_thread::sleep_for(std::chrono::seconds(3));
 	}
-
 }
