@@ -165,7 +165,7 @@ namespace Network
                         int rank = message_wrapper->ranking();
                         bool inRanking = message_wrapper->in_ranking();
 
-                        std::string log = "[Network] RESPONSE_PLAYER_RANKING - Player ID: " + playerId + ", Score: " + std::to_string(score) + ", In Ranking: " + (inRanking ? "Yes" : "No"); +" rank : " + std::to_string(rank);
+                        std::string log = "[Network] RESPONSE_PLAYER_RANKING - Player ID: " + playerId + ", Score: " + std::to_string(score) + ", In Ranking: " + (inRanking ? "Yes" : "No") +" rank : " + std::to_string(rank);
                         std::cout << log << std::endl;
 
                         targetOverlapped->Clear();

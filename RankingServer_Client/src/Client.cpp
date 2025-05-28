@@ -110,6 +110,11 @@ namespace Network
 		overlapped.mOperationType = OperationType::OP_SEND;
 		overlapped.hEvent = NULL;
 
+		if (overlapped.wsabuf[0].buf == nullptr)
+		{
+			std::cout << "??" << std::endl;
+			return;
+		}
 		DWORD flags = 0;
 		int result = WSASend(*mClientSocket, overlapped.wsabuf, 2, nullptr, flags, &overlapped, nullptr);
 		int errorCode = WSAGetLastError();
