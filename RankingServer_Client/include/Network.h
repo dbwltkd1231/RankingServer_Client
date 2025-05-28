@@ -10,7 +10,7 @@
 
 
 
-#define BUFFER_SIZE 4096
+#define BUFFER_SIZE 1024
 
 namespace Network
 {

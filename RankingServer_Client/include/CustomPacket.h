@@ -7,7 +7,7 @@
 #include "flatbuffers/flatbuffers.h"
 #include "RANKING_PROTOCOL_generated.h"
 
-#define BUFFER_SIZE 4096
+#define BUFFER_SIZE 1024
 
 namespace Network
 {

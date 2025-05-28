@@ -58,7 +58,7 @@ int main()
 			std::this_thread::sleep_for(std::chrono::seconds(interval));
 		}
 
-		std::this_thread::sleep_for(std::chrono::seconds(3));
+		std::this_thread::sleep_for(std::chrono::seconds(2));
 
 		for (int j = 0;j < clientCount; ++j)
 		{
@@ -78,6 +78,6 @@ int main()
 		}
 
 		standardScore += 100;
-		std::this_thread::sleep_for(std::chrono::seconds(3));
+		std::this_thread::sleep_for(std::chrono::seconds(2));
 	}
 }
