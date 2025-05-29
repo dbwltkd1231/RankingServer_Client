@@ -18,7 +18,7 @@ namespace Network
 	void Network::Start(std::string ip, int port, int clientCount, int threadCount)
 	{
         int contextMax = threadCount * clientCount;//임의의 오버랩 풀 MAX값.
-        mOverlappedQueue.Construct(contextMax);
+        mOverlappedQueue.Construct(contextMax + 1);
 
         int contextCount = threadCount;
         for (int i = 0;i < contextMax; ++i)
