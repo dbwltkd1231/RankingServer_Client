@@ -4,20 +4,20 @@ namespace Network
 {
 	Client::Client()
 	{
-		mReceive_HeaderBuffer = new char[sizeof(MessageHeader)];
-		mReceive_BodyBuffer = new char[BUFFER_SIZE];
+		mReceiveHeaderBuffer = new char[sizeof(MessageHeader)];
+		mReceiveBodyBuffer = new char[BUFFER_SIZE];
 
-		mSend_HeaderBuffer = new char[sizeof(MessageHeader)];
-		mSend_BodyBuffer = new char[BUFFER_SIZE];
+		mSendHeaderBuffer = new char[sizeof(MessageHeader)];
+		mSendBodyBuffer = new char[BUFFER_SIZE];
 	}
 
 	Client::~Client()
 	{
-		delete[] mReceive_HeaderBuffer;
-		delete[] mReceive_BodyBuffer;
+		delete[] mReceiveHeaderBuffer;
+		delete[] mReceiveBodyBuffer;
 
-		delete[] mSend_HeaderBuffer;
-		delete[] mSend_BodyBuffer;
+		delete[] mSendHeaderBuffer;
+		delete[] mSendBodyBuffer;
 	}
 
 	void Client::Initialize(std::shared_ptr<SOCKET> socket)
@@ -33,14 +33,14 @@ namespace Network
 			return;
 		}
 
-		memset(mReceive_HeaderBuffer, 0, sizeof(MessageHeader));
-		memset(mReceive_BodyBuffer, 0, BUFFER_SIZE);
+		memset(mReceiveHeaderBuffer, 0, sizeof(MessageHeader));
+		memset(mReceiveBodyBuffer, 0, BUFFER_SIZE);
 		overlapped.mOperationType = OperationType::OP_ACCEPT;
 
 		MessageHeader newHeader(0, 0, 0);
-		std::memcpy(mReceive_HeaderBuffer, &newHeader, sizeof(MessageHeader));
-		overlapped.SetHeader(mReceive_HeaderBuffer, sizeof(MessageHeader));
-		overlapped.SetBody(mReceive_BodyBuffer, BUFFER_SIZE);
+		std::memcpy(mReceiveHeaderBuffer, &newHeader, sizeof(MessageHeader));
+		overlapped.SetHeader(mReceiveHeaderBuffer, sizeof(MessageHeader));
+		overlapped.SetBody(mReceiveBodyBuffer, BUFFER_SIZE);
 		overlapped.hEvent = NULL;
 
 		BOOL result = connectEx(*mClientSocket, (sockaddr*)&serverAddr, sizeof(serverAddr), NULL, 0, NULL, &overlapped);
@@ -76,17 +76,17 @@ namespace Network
 
 		overlapped.mOperationType = OperationType::OP_RECV;
 
-		memset(mReceive_HeaderBuffer, 0, sizeof(MessageHeader));
-		memset(mReceive_BodyBuffer, 0, BUFFER_SIZE);
+		memset(mReceiveHeaderBuffer, 0, sizeof(MessageHeader));
+		memset(mReceiveBodyBuffer, 0, BUFFER_SIZE);
 
 		MessageHeader newHeader(0, 0, 0);
-		std::memcpy(mReceive_HeaderBuffer, &newHeader, sizeof(MessageHeader));
-		overlapped.SetHeader(mReceive_HeaderBuffer, sizeof(MessageHeader));
-		overlapped.SetBody(mReceive_BodyBuffer, BUFFER_SIZE);
+		std::memcpy(mReceiveHeaderBuffer, &newHeader, sizeof(MessageHeader));
+		overlapped.SetHeader(mReceiveHeaderBuffer, sizeof(MessageHeader));
+		overlapped.SetBody(mReceiveBodyBuffer, BUFFER_SIZE);
 		overlapped.hEvent = NULL;
 
 		DWORD flags = 0;
-		int result = WSARecv(*mClientSocket, overlapped.wsabuf, 2, nullptr, &flags, &overlapped, nullptr);
+		int result = WSARecv(*mClientSocket, overlapped.mWsabuf, 2, nullptr, &flags, &overlapped, nullptr);
 
 		std::string log;
 		errorCode = WSAGetLastError();
@@ -110,13 +110,13 @@ namespace Network
 		overlapped.mOperationType = OperationType::OP_SEND;
 		overlapped.hEvent = NULL;
 
-		if (overlapped.wsabuf[0].buf == nullptr)
+		if (overlapped.mWsabuf[0].buf == nullptr)
 		{
 			std::cout << "??" << std::endl;
 			return;
 		}
 		DWORD flags = 0;
-		int result = WSASend(*mClientSocket, overlapped.wsabuf, 2, nullptr, flags, &overlapped, nullptr);
+		int result = WSASend(*mClientSocket, overlapped.mWsabuf, 2, nullptr, flags, &overlapped, nullptr);
 		int errorCode = WSAGetLastError();
 		if (result == SOCKET_ERROR && WSAGetLastError() != WSA_IO_PENDING)
 		{

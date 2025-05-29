@@ -27,14 +27,14 @@ namespace Network
 		void ConnectEx(LPFN_CONNECTEX& connectEx, sockaddr_in serverAddr, CustomOverlapped& overlapped);
 		void ReceiveReady(CustomOverlapped& overlapped);
 		void Send(CustomOverlapped& overlapped);
-		char* mSend_HeaderBuffer;
-		char* mSend_BodyBuffer;
+		char* mSendHeaderBuffer;
+		char* mSendBodyBuffer;
 
 	private:
 		std::shared_ptr<SOCKET> mClientSocket;
 		Utility::LockFreeCircleQueue<CustomOverlapped*> mOverlappedQueue;
 
-		char* mReceive_HeaderBuffer;
-		char* mReceive_BodyBuffer;
+		char* mReceiveHeaderBuffer;
+		char* mReceiveBodyBuffer;
 	};
 }

@@ -29,7 +29,7 @@ namespace Network
 	private:
 		void Work();
 
-		HANDLE iocp;
+		HANDLE mIocp;
 		tbb::concurrent_map<int, std::shared_ptr<Client>> mClientMap;
 
 	};

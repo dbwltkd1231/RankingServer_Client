@@ -17,8 +17,8 @@ namespace Network
 
 	void Network::Start(std::string ip, int port, int clientCount, int threadCount)
 	{
-        int contextMax = threadCount * clientCount;
-        mOverlappedQueue.Construct(contextMax + 1);
+        int contextMax = threadCount * clientCount;//임의의 오버랩 풀 MAX값.
+        mOverlappedQueue.Construct(contextMax);
 
         int contextCount = threadCount;
         for (int i = 0;i < contextMax; ++i)
@@ -37,12 +37,12 @@ namespace Network
 
         SOCKET clientSocket = WSASocket(AF_INET, SOCK_STREAM, IPPROTO_TCP, NULL, 0, WSA_FLAG_OVERLAPPED);
         // ConnectEx 함수 포인터 가져오기
-        LPFN_CONNECTEX ConnectEx = NULL;
+        LPFN_CONNECTEX connectEx = NULL;
         GUID connectExGuid = WSAID_CONNECTEX;
         DWORD bytes;
         if (WSAIoctl(clientSocket, SIO_GET_EXTENSION_FUNCTION_POINTER,
             &connectExGuid, sizeof(connectExGuid),
-            &ConnectEx, sizeof(ConnectEx),
+            &connectEx, sizeof(connectEx),
             &bytes, NULL, NULL)) {
             std::cerr << "WSAIoctl 실패: " << WSAGetLastError() << "\n";
             closesocket(clientSocket);
@@ -56,7 +56,7 @@ namespace Network
         serverAddr.sin_port = htons(port);
         inet_pton(AF_INET, ip.c_str(), &serverAddr.sin_addr);
 
-        iocp = CreateIoCompletionPort(INVALID_HANDLE_VALUE, NULL, 0, 0);
+        mIocp = CreateIoCompletionPort(INVALID_HANDLE_VALUE, NULL, 0, 0);
 
         for (int index = 0; index < clientCount; ++index)
         {
@@ -83,10 +83,10 @@ namespace Network
             std::shared_ptr<Client> clientSharedPtr = std::make_shared<Client>();
             clientSharedPtr->Initialize(socketSharedPtr);
             auto context = mOverlappedQueue.pop();
-            clientSharedPtr->ConnectEx(ConnectEx, serverAddr, *context);
+            clientSharedPtr->ConnectEx(connectEx, serverAddr, *context);
             mClientMap.insert(std::make_pair((ULONG_PTR)clientSharedPtr.get(), clientSharedPtr));
             mClientVector.push_back(clientSharedPtr);
-            CreateIoCompletionPort((HANDLE)*socketSharedPtr, iocp, (ULONG_PTR)clientSharedPtr.get(), threadCount);
+            CreateIoCompletionPort((HANDLE)*socketSharedPtr, mIocp, (ULONG_PTR)clientSharedPtr.get(), threadCount);
         }
 
         mConnected = true;
@@ -121,7 +121,7 @@ namespace Network
             bytesTransferred = 0;
             completionKey = 0;
             oerlapped = nullptr;
-            bool result = GetQueuedCompletionStatus(iocp, &bytesTransferred, &completionKey, reinterpret_cast<LPOVERLAPPED*>(&oerlapped), INFINITE);
+            bool result = GetQueuedCompletionStatus(mIocp, &bytesTransferred, &completionKey, reinterpret_cast<LPOVERLAPPED*>(&oerlapped), INFINITE);
 
             if (result)
             {
@@ -146,7 +146,7 @@ namespace Network
                 }
                 case OperationType::OP_RECV:
                 {
-                    MessageHeader* receivedHeader = reinterpret_cast<MessageHeader*>(targetOverlapped->wsabuf[0].buf);
+                    MessageHeader* receivedHeader = reinterpret_cast<MessageHeader*>(targetOverlapped->mWsabuf[0].buf);
 
                     auto socket_id = completionKey;
                     auto request_body_size = ntohl(receivedHeader->body_size);
@@ -158,12 +158,15 @@ namespace Network
                     {
                     case protocol::MessageContent_RESPONSE_PLAYER_RANKING:
                     {
-                        auto message_wrapper = flatbuffers::GetRoot<protocol::RESPONSE_PLAYER_RANKING>(targetOverlapped->wsabuf[1].buf);
+                        auto playerRanking = flatbuffers::GetRoot<protocol::RESPONSE_PLAYER_RANKING>(targetOverlapped->mWsabuf[1].buf);
 
-                        std::string playerId = message_wrapper->player_id()->str();
-                        int score = message_wrapper->score();
-                        int rank = message_wrapper->ranking();
-                        bool inRanking = message_wrapper->in_ranking();
+                        if (playerRanking == nullptr)
+                            continue;
+
+                        std::string playerId = playerRanking->player_id()->str();
+                        int score = playerRanking->score();
+                        int rank = playerRanking->ranking();
+                        bool inRanking = playerRanking->in_ranking();
 
                         std::string log = "[Network] RESPONSE_PLAYER_RANKING - Player ID: " + playerId + ", Score: " + std::to_string(score) + ", In Ranking: " + (inRanking ? "Yes" : "No") +" rank : " + std::to_string(rank);
                         std::cout << log << std::endl;
@@ -180,9 +183,12 @@ namespace Network
                     }
                     case protocol::MessageContent_RESPONSE_SAVE_SCORE:
                     {
-                        auto  RESPONSE_SAVE_SCORE = flatbuffers::GetRoot<protocol::RESPONSE_SAVE_SCORE>(targetOverlapped->wsabuf[1].buf);
-                        bool feedback = RESPONSE_SAVE_SCORE->feedback();
-                        std::string player_id = RESPONSE_SAVE_SCORE->player_id()->str();
+                        auto saveScore = flatbuffers::GetRoot<protocol::RESPONSE_SAVE_SCORE>(targetOverlapped->mWsabuf[1].buf);
+                        if (saveScore == nullptr)
+                            continue;
+
+                        bool feedback = saveScore->feedback();
+                        std::string player_id = saveScore->player_id()->str();
                         std::string feedback_str = (feedback ? "Success" : "Failure");
                         std::string log = "[Network] RESPONSE_SAVE_SCORE - "+ player_id + " Save Score " + feedback_str;
 
@@ -207,14 +213,12 @@ namespace Network
                 {
                     targetOverlapped->Clear();
                     mOverlappedQueue.push(std::move(targetOverlapped));
-                    //std::cout << "Send Success" << std::endl;
                     break;
                 }
                 default:
                 {
                     targetOverlapped->Clear();
                     mOverlappedQueue.push(std::move(targetOverlapped));
-                    //std::cout << "??? Success" << std::endl;
                     break;
                 }
                 }

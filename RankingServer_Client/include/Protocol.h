@@ -19,18 +19,18 @@ namespace Business
 
 		char* message = reinterpret_cast<char*>(data);
 
-		memset(context->wsabuf[0].buf, 0, sizeof(Network::MessageHeader));
-		memset(context->wsabuf[1].buf, 0, BUFFER_SIZE);
+		memset(context->mWsabuf[0].buf, 0, sizeof(Network::MessageHeader));
+		memset(context->mWsabuf[1].buf, 0, BUFFER_SIZE);
 
 		auto header_id = 0;
 		auto header_body_size = htonl(size);
 		auto header_contents_type = htonl(static_cast<uint32_t>(protocol::MessageContent_REQUEST_PLAYER_RANKING));
 		Network::MessageHeader newHeader(header_id, header_body_size, header_contents_type);
-		std::memcpy(context->wsabuf[0].buf, &newHeader, sizeof(Network::MessageHeader));
-		context->wsabuf[0].len = sizeof(Network::MessageHeader);
+		std::memcpy(context->mWsabuf[0].buf, &newHeader, sizeof(Network::MessageHeader));
+		context->mWsabuf[0].len = sizeof(Network::MessageHeader);
 
-		std::memcpy(context->wsabuf[1].buf, message, size);
-		context->wsabuf[1].len = size;
+		std::memcpy(context->mWsabuf[1].buf, message, size);
+		context->mWsabuf[1].len = size;
 	}
 
 	static void Create_Request_Save_Score(std::string playerId, int score, std::time_t lastUpdate, Network::CustomOverlapped* context)
@@ -44,17 +44,17 @@ namespace Business
 
 		char* message = reinterpret_cast<char*>(data);
 
-		memset(context->wsabuf[0].buf, 0, sizeof(Network::MessageHeader));
-		memset(context->wsabuf[1].buf, 0, BUFFER_SIZE);
+		memset(context->mWsabuf[0].buf, 0, sizeof(Network::MessageHeader));
+		memset(context->mWsabuf[1].buf, 0, BUFFER_SIZE);
 
 		auto header_id = 0;
 		auto header_body_size = htonl(size);
 		auto header_contents_type = htonl(static_cast<uint32_t>(protocol::MessageContent_REQUEST_SAVE_SCORE));
 
 		Network::MessageHeader newHeader(header_id, header_body_size, header_contents_type);
-		std::memcpy(context->wsabuf[0].buf, &newHeader, sizeof(Network::MessageHeader));
-		context->wsabuf[0].len = sizeof(Network::MessageHeader);
-		std::memcpy(context->wsabuf[1].buf, message, size);
-		context->wsabuf[1].len = size;
+		std::memcpy(context->mWsabuf[0].buf, &newHeader, sizeof(Network::MessageHeader));
+		context->mWsabuf[0].len = sizeof(Network::MessageHeader);
+		std::memcpy(context->mWsabuf[1].buf, message, size);
+		context->mWsabuf[1].len = size;
 	}
 }

@@ -10,7 +10,6 @@
 #define MY_PORT_NUM 9090
 
 
-
 int main()
 {
 	int clientCount = 0;
@@ -47,8 +46,11 @@ int main()
 			int myScore = standardScore + i * 10;
 
 			auto context = network.mOverlappedQueue.pop();
-			context->SetHeader(client->mSend_HeaderBuffer, 0);
-			context->SetBody(client->mSend_BodyBuffer, 0);
+			if (context == nullptr)
+				continue;
+
+			context->SetHeader(client->mSendHeaderBuffer, 0);
+			context->SetBody(client->mSendBodyBuffer, 0);
 
 			Business::Create_Request_Save_Score(myId, myScore, unixTime, context);
 			client->Send(*context);
@@ -66,8 +68,11 @@ int main()
 			std::string myId = standardId + std::to_string(j + 1);
 
 			auto context = network.mOverlappedQueue.pop();
-			context->SetHeader(client->mSend_HeaderBuffer, 0);
-			context->SetBody(client->mSend_BodyBuffer, 0);
+			if (context == nullptr)
+				continue;
+
+			context->SetHeader(client->mSendHeaderBuffer, 0);
+			context->SetBody(client->mSendBodyBuffer, 0);
 
 			Business::Create_Request_Player_Ranking(myId, context);
 			client->Send(*context);
